@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Death Lane - Cyberpunk Edition</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #030308;
+            color: #fff;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 440px;
+            height: 100vh;
+            max-height: 780px;
+            background: #060712;
+            box-shadow: 0 0 50px rgba(0, 240, 255, 0.4), 0 0 100px rgba(255, 0, 128, 0.2);
+            border-radius: 16px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 6, 14, 0.93);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            text-align: center;
+            z-index: 10;
+        }
+        .hidden {
+            display: none !important;
+        }
+        h1 {
+            font-size: 36px;
+            margin: 0 0 6px 0;
+            color: #00f0ff;
+            text-shadow: 0 0 15px #00f0ff, 0 0 35px #ff007f;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            font-weight: 900;
+        }
+        p {
+            color: #b0c4de;
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .mode-title {
+            font-size: 14px;
+            color: #ff007f;
+            margin-bottom: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.7);
+        }
+        .btn-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            width: 100%;
+            max-width: 250px;
+        }
+        .btn {
+            padding: 14px 20px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #fff;
+            border: 2px solid;
+            border-radius: 12px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.4);
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+        .btn-easy {
+            border-color: #00ff66;
+            color: #00ff66;
+            box-shadow: 0 0 12px rgba(0, 255, 102, 0.25);
+        }
+        .btn-easy:hover, .btn-easy:active {
+            background: #00ff66;
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 255, 102, 0.8);
+        }
+        .btn-normal {
+            border-color: #00f0ff;
+            color: #00f0ff;
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
+        }
+        .btn-normal:hover, .btn-normal:active {
+            background: #00f0ff;
+            color: #000;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+        }
+        .btn-hard {
+            border-color: #ff0055;
+            color: #ff0055;
+            box-shadow: 0 0 12px rgba(255, 0, 85, 0.25);
+        }
+        .btn-hard:hover, .btn-hard:active {
+            background: #ff0055;
+            color: #fff;
+            box-shadow: 0 0 30px rgba(255, 0, 85, 0.8);
+        }
+
+        .hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .hud-item {
+            background: rgba(10, 12, 26, 0.85);
+            padding: 8px 14px;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            font-size: 13px;
+            font-weight: bold;
+            backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .score-val { color: #00f0ff; font-size: 16px; text-shadow: 0 0 8px rgba(0, 240, 255, 0.7); }
+        .lives-val { color: #ff0055; letter-spacing: 3px; font-size: 16px; text-shadow: 0 0 8px rgba(255, 0, 85, 0.7); }
+        .diff-val { color: #ffe600; font-size: 12px; text-transform: uppercase; }
+
+        .controls-mobile {
+            position: absolute;
+            bottom: 25px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-sizing: border-box;
+            z-index: 5;
+        }
+        .touch-btn {
+            width: 76px;
+            height: 76px;
+            border-radius: 50%;
+            background: rgba(0, 240, 255, 0.08);
+            border: 2px solid rgba(0, 240, 255, 0.4);
+            color: #00f0ff;
+            font-size: 26px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(8px);
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.2);
+            transition: all 0.1s ease;
+        }
+        .touch-btn:active {
+            background: rgba(0, 240, 255, 0.4);
+            border-color: #00f0ff;
+            transform: scale(0.92);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.8);
+        }
+    </style>
+</head>
+<body>
+
+<div id="game-wrapper">
+    <!-- HUD -->
+    <div class="hud">
+        <div class="hud-item">ĐIỂM: <span id="score" class="score-val">0</span></div>
+        <div class="hud-item"><span id="diff-label" class="diff-val">VỪA</span></div>
+        <div class="hud-item">MẠNG: <span id="lives" class="lives-val">❤❤❤</span></div>
+    </div>
+
+    <canvas id="gameCanvas" width="400" height="720"></canvas>
+
+    <!-- Controls -->
+    <div class="controls-mobile">
+        <div class="touch-btn" id="btn-left">◄</div>
+        <div class="touch-btn" id="btn-right">►</div>
+    </div>
+
+    <!-- Start Overlay -->
+    <div id="start-overlay" class="overlay">
+        <h1>DEATH LANE</h1>
+        <p>Đường đua Tử Thần Cyberpunk Synthwave.<br>Sử dụng <b>A/D</b> hoặc <b>◄ / ►</b> để sinh tồn!</p>
+        <div class="mode-title">CHỌN MỨC ĐỘ CHƠI</div>
+        <div class="btn-group">
+            <button class="btn btn-easy" onclick="startGame('easy')">DỄ</button>
+            <button class="btn btn-normal" onclick="startGame('normal')">VỪA</button>
+            <button class="btn btn-hard" onclick="startGame('hard')">KHÓ</button>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div id="gameover-overlay" class="overlay hidden">
+        <h1 style="color:#ff0055; text-shadow: 0 0 20px #ff0055;">DEATH LANE OVER!</h1>
+        <p>Điểm số sinh tồn: <b id="final-score" style="color:#00f0ff; font-size: 24px;">0</b></p>
+        <div class="mode-title">THỬ LẠI LẦN NỮA</div>
+        <div class="btn-group">
+            <button class="btn btn-easy" onclick="startGame('easy')">DỄ</button>
+            <button class="btn btn-normal" onclick="startGame('normal')">VỪA</button>
+            <button class="btn btn-hard" onclick="startGame('hard')">KHÓ</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const scoreEl = document.getElementById("score");
+    const livesEl = document.getElementById("lives");
+    const diffLabelEl = document.getElementById("diff-label");
+    const finalScoreEl = document.getElementById("final-score");
+    const startOverlay = document.getElementById("start-overlay");
+    const gameoverOverlay = document.getElementById("gameover-overlay");
+
+    let gameLoopId = null;
+    let score = 0;
+    let lives = 3;
+    let currentDiff = 'normal';
+    let baseSpeed = 6;
+    let currentSpeed = 6;
+    let baseSpawnInterval = 60;
+    let currentSpawnInterval = 60;
+    let frameCount = 0;
+    let isGameOver = false;
+
+    // --- AUDIO SYSTEM (WEB AUDIO API) ---
+    let audioCtx = null;
+    let isMusicPlaying = false;
+    let musicTimer = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.1) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) {}
+    }
+
+    // Nhạc nền Synthwave đa tầng sống động
+    const synthMelody = [220, 261.63, 329.63, 392.00, 440.00, 523.25, 440.00, 392.00];
+    const bassline = [110, 110, 130.81, 146.83];
+    let step = 0;
+
+    function startMusic() {
+        if (isMusicPlaying) return;
+        isMusicPlaying = true;
+        step = 0;
+        musicTimer = setInterval(() => {
+            if (!isMusicPlaying || isGameOver) return;
+            
+            // Sub Bass
+            const bFreq = bassline[step % bassline.length];
+            playTone(bFreq, 'sawtooth', 0.2, 0.08);
+
+            // Synth Arp
+            if (step % 2 === 0) {
+                const mel = synthMelody[(step * 3) % synthMelody.length];
+                playTone(mel, 'square', 0.1, 0.04);
+            }
+
+            // Trống điện tử mô phỏng (Kick & Snare)
+            if (step % 4 === 0) {
+                playTone(60, 'sine', 0.12, 0.25); // Kick
+            } else if (step % 4 === 2) {
+                playTone(180, 'triangle', 0.08, 0.1); // Snare
+            }
+
+            step++;
+        }, 130);
+    }
+
+    function stopMusic() {
+        isMusicPlaying = false;
+        if (musicTimer) clearInterval(musicTimer);
+    }
+
+    function playHitSound() {
+        playTone(100, 'sawtooth', 0.4, 0.3);
+        playTone(60, 'square', 0.5, 0.25);
+    }
+
+    function playScoreSound() {
+        playTone(659.25, 'sine', 0.06, 0.03);
+    }
+
+    // Cấu hình mức độ
+    const DIFFICULTY_SETTINGS = {
+        easy: { speed: 5.2, spawnRate: 70, label: "DỄ", color: "#00ff66" },
+        normal: { speed: 7.5, spawnRate: 48, label: "VỪA", color: "#00f0ff" },
+        hard: { speed: 10.5, spawnRate: 32, label: "KHÓ", color: "#ff0055" }
+    };
+
+    const road = {
+        lanes: 4,
+        laneWidth: canvas.width / 4,
+        offsetY: 0
+    };
+
+    const player = {
+        lane: 1,
+        x: 0,
+        y: canvas.height - 115,
+        width: 44,
+        height: 76,
+        color: "#00f0ff",
+        targetX: 0,
+        speedX: 0.3
+    };
+
+    let obstacles = [];
+    let particles = [];
+    let stars = [];
+
+    // Khởi tạo phông nền bụi Neon
+    for (let i = 0; i < 50; i++) {
+        stars.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speed: Math.random() * 2 + 1,
+            color: Math.random() > 0.5 ? "#00f0ff" : "#ff007f"
+        });
+    }
+
+    // Controls
+    window.addEventListener("keydown", e => {
+        initAudio();
+        if (isGameOver) return;
+        if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") movePlayer(-1);
+        if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") movePlayer(1);
+    });
+
+    document.getElementById("btn-left").addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); movePlayer(-1); });
+    document.getElementById("btn-right").addEventListener("touchstart", (e) => { e.preventDefault(); initAudio(); movePlayer(1); });
+    document.getElementById("btn-left").addEventListener("click", () => { initAudio(); movePlayer(-1); });
+    document.getElementById("btn-right").addEventListener("click", () => { initAudio(); movePlayer(1); });
+
+    function movePlayer(dir) {
+        player.lane += dir;
+        if (player.lane < 0) player.lane = 0;
+        if (player.lane >= road.lanes) player.lane = road.lanes - 1;
+        playTone(400, 'sine', 0.04, 0.03);
+    }
+
+    function startGame(diff) {
+        initAudio();
+        startMusic();
+
+        currentDiff = diff;
+        const config = DIFFICULTY_SETTINGS[diff];
+        
+        score = 0;
+        lives = 3;
+        baseSpeed = config.speed;
+        currentSpeed = baseSpeed;
+        baseSpawnInterval = config.spawnRate;
+        currentSpawnInterval = baseSpawnInterval;
+        frameCount = 0;
+        obstacles = [];
+        particles = [];
+        isGameOver = false;
+
+        player.lane = 1;
+        player.x = player.lane * road.laneWidth + (road.laneWidth - player.width) / 2;
+        player.targetX = player.x;
+
+        diffLabelEl.innerText = config.label;
+        diffLabelEl.style.color = config.color;
+        updateHUD();
+
+        startOverlay.classList.add("hidden");
+        gameoverOverlay.classList.add("hidden");
+
+        if (gameLoopId) cancelAnimationFrame(gameLoopId);
+        gameLoop();
+    }
+
+    function updateHUD() {
+        scoreEl.innerText = score;
+        livesEl.innerText = "❤".repeat(lives);
+    }
+
+    function createObstacles() {
+        let numCars = 1;
+        const progress = Math.min(score / 500, 1);
+        
+        if (Math.random() < 0.3 + progress * 0.4) numCars = 2;
+        if (currentDiff === 'hard' && Math.random() < 0.4) numCars = 3;
+
+        const availableLanes = [0, 1, 2, 3];
+        const chosenLanes = [];
+        
+        for (let i = 0; i < numCars; i++) {
+            if (availableLanes.length <= 1) break;
+            const randIndex = Math.floor(Math.random() * availableLanes.length);
+            chosenLanes.push(availableLanes.splice(randIndex, 1)[0]);
+        }
+
+        const colors = ["#ff0055", "#ffe600", "#ff00ff", "#00ff66"];
+
+        chosenLanes.forEach(lane => {
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            const width = 44;
+            const height = 76;
+            const x = lane * road.laneWidth + (road.laneWidth - width) / 2;
+
+            obstacles.push({
+                x: x,
+                y: -110,
+                width: width,
+                height: height,
+                color: color,
+                passed: false
+            });
+        });
+    }
+
+    function spawnExplosion(x, y, color) {
+        for (let i = 0; i < 28; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Math.random() * 7 + 2;
+            particles.push({
+                x: x,
+                y: y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                size: Math.random() * 5 + 2,
+                color: color,
+                life: 1.0,
+                decay: Math.random() * 0.03 + 0.025
+            });
+        }
+    }
+
+    function update() {
+        const speedBoost = Math.floor(score / 60) * 0.4;
+        currentSpeed = baseSpeed + speedBoost;
+        
+        const spawnReduction = Math.floor(score / 40) * 2;
+        currentSpawnInterval = Math.max(16, baseSpawnInterval - spawnReduction);
+
+        player.targetX = player.lane * road.laneWidth + (road.laneWidth - player.width) / 2;
+        player.x += (player.targetX - player.x) * player.speedX;
+
+        road.offsetY = (road.offsetY + currentSpeed) % 50;
+
+        stars.forEach(star => {
+            star.y += star.speed + currentSpeed * 0.3;
+            if (star.y > canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * canvas.width;
+            }
+        });
+
+        frameCount++;
+        if (frameCount % Math.floor(currentSpawnInterval) === 0) {
+            createObstacles();
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            let obs = obstacles[i];
+            obs.y += currentSpeed;
+
+            // Va chạm
+            if (
+                player.x < obs.x + obs.width - 4 &&
+                player.x + player.width > obs.x + 4 &&
+                player.y < obs.y + obs.height - 4 &&
+                player.y + player.height > obs.y + 4
+            ) {
+                spawnExplosion(player.x + player.width/2, player.y + player.height/2, obs.color);
+                obstacles.splice(i, 1);
+                lives--;
+                playHitSound();
+                updateHUD();
+
+                if (lives <= 0) {
+                    endGame();
+                    return;
+                }
+                continue;
+            }
+
+            // Ghi điểm
+            if (!obs.passed && obs.y > player.y + player.height) {
+                obs.passed = true;
+                score += 10;
+                playScoreSound();
+                updateHUD();
+            }
+
+            if (obs.y > canvas.height + 120) {
+                obstacles.splice(i, 1);
+            }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= p.decay;
+            if (p.life <= 0) {
+                particles.splice(i, 1);
+            }
+        }
+    }
+
+    function draw() {
+        // Nền Cyber Dark
+        ctx.fillStyle = "#05060f";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Bụi Neon Vũ Trụ
+        stars.forEach(star => {
+            ctx.fillStyle = star.color;
+            ctx.globalAlpha = 0.6;
+            ctx.fillRect(star.x, star.y, star.size, star.size * 2);
+        });
+        ctx.globalAlpha = 1.0;
+
+        // Vạch Biên Neon
+        ctx.strokeStyle = "#ff007f";
+        ctx.lineWidth = 4;
+        ctx.shadowColor = "#ff007f";
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(0, canvas.height);
+        ctx.moveTo(canvas.width, 0); ctx.lineTo(canvas.width, canvas.height);
+        ctx.stroke();
+
+        // Đường Lưới Cyber Grid
+        ctx.strokeStyle = "rgba(0, 240, 255, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.shadowColor = "#00f0ff";
+        ctx.shadowBlur = 8;
+        ctx.setLineDash([25, 25]);
+        ctx.lineDashOffset = -road.offsetY;
+
+        for (let i = 1; i < road.lanes; i++) {
+            ctx.beginPath();
+            ctx.moveTo(i * road.laneWidth, 0);
+            ctx.lineTo(i * road.laneWidth, canvas.height);
+            ctx.stroke();
+        }
+        ctx.setLineDash([]);
+
+        // Vẽ Xe
+        drawCyberCar(player.x, player.y, player.width, player.height, player.color, true);
+
+        obstacles.forEach(obs => {
+            drawCyberCar(obs.x, obs.y, obs.width, obs.height, obs.color, false);
+        });
+
+        // Vẽ Hạt Nổ
+        particles.forEach(p => {
+            ctx.save();
+            ctx.globalAlpha = p.life;
+            ctx.fillStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 10;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            ctx.restore();
+        });
+    }
+
+    function drawCyberCar(x, y, w, h, color, isPlayer) {
+        ctx.save();
+        
+        // Vệt đèn đuôi/lửa tốc độ
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 16;
+        
+        // Thân xe chính
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, w, h, 10);
+        ctx.fill();
+
+        // Kính xe Cyber
+        ctx.fillStyle = "#090a12";
+        ctx.fillRect(x + 5, y + (isPlayer ? 16 : 46), w - 10, 18);
+
+        // Đèn Pha / Đèn Hậu Glowing
+        if (isPlayer) {
+            // Đèn Pha Trắng
+            ctx.fillStyle = "#ffffff";
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur = 12;
+            ctx.fillRect(x + 4, y, 8, 4);
+            ctx.fillRect(x + w - 12, y, 8, 4);
+
+            // Vệt Đèn Hậu Đỏ
+            ctx.fillStyle = "#ff0055";
+            ctx.shadowColor = "#ff0055";
+            ctx.shadowBlur = 15;
+            ctx.fillRect(x + 6, y + h - 3, w - 12, 3);
+        } else {
+            // Đèn Hậu Xe Cản Đường
+            ctx.fillStyle = "#ff0055";
+            ctx.shadowColor = "#ff0055";
+            ctx.shadowBlur = 12;
+            ctx.fillRect(x + 4, y + h - 4, 8, 4);
+            ctx.fillRect(x + w - 12, y + h - 4, 8, 4);
+        }
+
+        ctx.restore();
+    }
+
+    function gameLoop() {
+        if (isGameOver) return;
+        update();
+        draw();
+        gameLoopId = requestAnimationFrame(gameLoop);
+    }
+
+    function endGame() {
+        isGameOver = true;
+        stopMusic();
+        finalScoreEl.innerText = score;
+        gameoverOverlay.classList.remove("hidden");
+    }
+</script>
+</body>
+</html>
